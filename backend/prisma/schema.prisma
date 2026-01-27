@@ -1,0 +1,303 @@
+// Prisma Schema for Gym Tracker Backend
+// Mirrors Flutter/Drift schema for seamless sync
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  displayName  String?   @map("display_name")
+  avatarUrl    String?   @map("avatar_url")
+  
+  // Sync metadata
+  lastSyncAt   DateTime? @map("last_sync_at")
+  
+  // Soft delete
+  isDeleted    Boolean   @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at")
+  
+  // Timestamps
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  refreshTokens RefreshToken[]
+  exercises     Exercise[]
+  workouts      Workout[]
+  personalRecords PersonalRecord[]
+  
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Device info for multi-device support
+  deviceName String? @map("device_name")
+  deviceId   String? @map("device_id")
+  
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// EXERCISE LIBRARY
+// ============================================
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  ABS
+  OBLIQUES
+  LOWER_BACK
+  QUADS
+  HAMSTRINGS
+  GLUTES
+  CALVES
+  ADDUCTORS
+  ABDUCTORS
+  TRAPS
+  LATS
+  NECK
+}
+
+model Exercise {
+  id             String      @id @default(uuid())
+  name           String
+  description    String?
+  primaryMuscle  MuscleGroup @map("primary_muscle")
+  secondaryMuscles MuscleGroup[] @map("secondary_muscles")
+  
+  // Exercise properties
+  isCustom       Boolean     @default(false) @map("is_custom")
+  isCompound     Boolean     @default(false) @map("is_compound")
+  
+  // User who created (null for system exercises)
+  userId         String?     @map("user_id")
+  user           User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Soft delete
+  isDeleted      Boolean     @default(false) @map("is_deleted")
+  deletedAt      DateTime?   @map("deleted_at")
+  
+  // Timestamps
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  
+  // Client sync ID (for offline-first sync)
+  clientId       String?     @unique @map("client_id")
+  
+  // Relations
+  workoutExercises WorkoutExercise[]
+  personalRecords  PersonalRecord[]
+  
+  @@index([userId])
+  @@index([primaryMuscle])
+  @@index([clientId])
+  @@map("exercises")
+}
+
+// ============================================
+// WORKOUTS
+// ============================================
+
+model Workout {
+  id          String    @id @default(uuid())
+  name        String?
+  notes       String?
+  
+  // Timing
+  startTime   DateTime  @map("start_time")
+  endTime     DateTime? @map("end_time")
+  durationMs  Int?      @map("duration_ms")
+  
+  // User
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Soft delete
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+  
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Client sync ID
+  clientId    String?   @unique @map("client_id")
+  
+  // Relations
+  exercises   WorkoutExercise[]
+  
+  @@index([userId])
+  @@index([startTime])
+  @@index([clientId])
+  @@map("workouts")
+}
+
+model WorkoutExercise {
+  id          String   @id @default(uuid())
+  
+  workoutId   String   @map("workout_id")
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  
+  exerciseId  String   @map("exercise_id")
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  orderIndex  Int      @map("order_index")
+  notes       String?
+  
+  // Rest timer settings
+  restSeconds Int?     @map("rest_seconds")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Client sync ID
+  clientId    String?  @unique @map("client_id")
+  
+  // Relations
+  sets        ExerciseSet[]
+  
+  @@index([workoutId])
+  @@index([exerciseId])
+  @@index([clientId])
+  @@map("workout_exercises")
+}
+
+model ExerciseSet {
+  id                String   @id @default(uuid())
+  
+  workoutExerciseId String   @map("workout_exercise_id")
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  
+  setNumber         Int      @map("set_number")
+  
+  // Performance data
+  weight            Float?   // in kg
+  reps              Int?
+  durationSeconds   Int?     @map("duration_seconds")
+  distance          Float?   // in meters
+  
+  // RPE (Rate of Perceived Exertion) 1-10
+  rpe               Float?
+  
+  // Set type
+  isWarmup          Boolean  @default(false) @map("is_warmup")
+  isDropset         Boolean  @default(false) @map("is_dropset")
+  isFailure         Boolean  @default(false) @map("is_failure")
+  
+  // Completion
+  isCompleted       Boolean  @default(false) @map("is_completed")
+  completedAt       DateTime? @map("completed_at")
+  
+  // Timestamps
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Client sync ID
+  clientId          String?  @unique @map("client_id")
+  
+  @@index([workoutExerciseId])
+  @@index([clientId])
+  @@map("exercise_sets")
+}
+
+// ============================================
+// PERSONAL RECORDS
+// ============================================
+
+enum PRType {
+  MAX_WEIGHT      // Heaviest weight lifted
+  MAX_REPS        // Most reps at any weight
+  MAX_VOLUME      // Best weight × reps
+  MAX_ONE_RM      // Calculated 1RM
+  MAX_DURATION    // Longest time
+  MAX_DISTANCE    // Furthest distance
+}
+
+model PersonalRecord {
+  id          String   @id @default(uuid())
+  
+  exerciseId  String   @map("exercise_id")
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  prType      PRType   @map("pr_type")
+  value       Float
+  
+  // Context
+  weight      Float?
+  reps        Int?
+  
+  achievedAt  DateTime @map("achieved_at")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Client sync ID
+  clientId    String?  @unique @map("client_id")
+  
+  @@unique([exerciseId, userId, prType])
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([clientId])
+  @@map("personal_records")
+}
+
+// ============================================
+// SYNC METADATA
+// ============================================
+
+model SyncLog {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  
+  // Sync details
+  deviceId    String   @map("device_id")
+  syncType    String   @map("sync_type") // "push" | "pull" | "full"
+  
+  // Stats
+  itemsPushed Int      @default(0) @map("items_pushed")
+  itemsPulled Int      @default(0) @map("items_pulled")
+  conflicts   Int      @default(0)
+  
+  // Timing
+  startedAt   DateTime @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  
+  // Status
+  status      String   @default("in_progress") // "in_progress" | "completed" | "failed"
+  errorMessage String? @map("error_message")
+  
+  @@index([userId])
+  @@index([deviceId])
+  @@map("sync_logs")
+}

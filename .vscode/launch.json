@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "gym_tracker (debug)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "gym_tracker (profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "gym_tracker (release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release"
+    },
+    {
+      "name": "gym_tracker (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome", "--web-port=8080"]
+    },
+    {
+      "name": "gym_tracker (Production)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=ENVIRONMENT=production",
+        "--dart-define=API_BASE_URL=https://your-api.com"
+      ]
+    }
+  ]
+}
