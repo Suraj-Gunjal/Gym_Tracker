@@ -43,3 +43,25 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Signing keys - NEVER commit these!
+android/key.properties
+android/*.jks
+android/*.keystore
+*.jks
+*.keystore
+
+# Environment files with secrets
+.env
+.env.*
+lib/core/config/env_config.dart
+
+# iOS signing
+ios/*.mobileprovision
+ios/*.p12
+ios/Runner/GoogleService-Info.plist
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart

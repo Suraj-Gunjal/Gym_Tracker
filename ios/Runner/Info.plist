@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>gym_tracker</string>
+	<string>Gym Tracker</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,6 +28,25 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	
+	<!-- Privacy descriptions for permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Gym Tracker needs camera access to take progress photos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Gym Tracker needs photo library access to save and view progress photos</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Gym Tracker needs permission to save progress photos to your library</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Gym Tracker can sync your workouts and health data with Apple Health</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Gym Tracker can save your workout data to Apple Health</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Gym Tracker uses motion data to track your activity during workouts</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Gym Tracker uses speech recognition for hands-free voice commands during workouts</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Gym Tracker needs microphone access for voice commands during workouts</string>
+	
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

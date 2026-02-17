@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../exercise/domain/entities/exercise.dart';
 import '../../../exercise/presentation/providers/exercise_provider.dart';
 import '../../../pr/domain/entities/pr_detection_result.dart';
+import '../../../rest_timer/presentation/widgets/mini_rest_timer.dart';
 import '../../domain/entities/exercise_set.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../providers/workout_provider.dart';
@@ -70,12 +71,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           ),
         ],
       ),
-      body: workout.exercises.isEmpty
-          ? _EmptyWorkoutState(onAddExercise: () => _showAddExercise(context))
-          : _WorkoutExerciseList(
-              exercises: workout.exercises,
-              onAddExercise: () => _showAddExercise(context),
-            ),
+      body: Stack(
+        children: [
+          workout.exercises.isEmpty
+              ? _EmptyWorkoutState(
+                  onAddExercise: () => _showAddExercise(context),
+                )
+              : _WorkoutExerciseList(
+                  exercises: workout.exercises,
+                  onAddExercise: () => _showAddExercise(context),
+                ),
+          // Mini rest timer - shows when timer is active
+          const Positioned(top: 8, right: 16, child: MiniRestTimer()),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddExercise(context),
         child: const Icon(Icons.add),

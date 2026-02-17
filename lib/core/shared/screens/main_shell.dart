@@ -75,7 +75,11 @@ class _BottomNavBar extends StatelessWidget {
       currentIndex = 1;
     } else if (location.startsWith(AppRoutes.prs)) {
       currentIndex = 2;
-    } else if (location.startsWith(AppRoutes.progress)) {
+    } else if (location.startsWith(AppRoutes.more) ||
+        location.startsWith(AppRoutes.progress) ||
+        location.startsWith(AppRoutes.templates) ||
+        location.startsWith(AppRoutes.body) ||
+        location.startsWith(AppRoutes.achievements)) {
       currentIndex = 3;
     }
 
@@ -108,11 +112,11 @@ class _BottomNavBar extends StatelessWidget {
             onTap: () => context.goToPRs(),
           ),
           _NavItem(
-            icon: Icons.bar_chart_outlined,
-            selectedIcon: Icons.bar_chart,
-            label: 'Progress',
+            icon: Icons.more_horiz,
+            selectedIcon: Icons.more_horiz,
+            label: 'More',
             isSelected: currentIndex == 3,
-            onTap: () => context.goToProgress(),
+            onTap: () => context.goToMore(),
           ),
         ],
       ),

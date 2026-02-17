@@ -7,6 +7,10 @@ import '../../features/pr/data/models/personal_record_table.dart';
 import '../../features/workout/data/models/exercise_set_table.dart';
 import '../../features/workout/data/models/workout_exercise_table.dart';
 import '../../features/workout/data/models/workout_table.dart';
+import '../../features/templates/data/models/workout_template_table.dart';
+import '../../features/body/data/models/body_measurement_table.dart';
+import '../../features/achievements/data/models/achievement_table.dart';
+import '../../features/rest_timer/data/models/rest_timer_settings_table.dart';
 
 part 'app_database.g.dart';
 
@@ -21,6 +25,15 @@ part 'app_database.g.dart';
     ExerciseSets,
     PersonalRecords,
     Users,
+    // New feature tables
+    WorkoutTemplates,
+    TemplateExercises,
+    BodyMeasurements,
+    Achievements,
+    UserAchievements,
+    UserStats,
+    RestTimerSettings,
+    ExerciseRestTimes,
   ],
 )
 class AppDatabase extends _$AppDatabase {

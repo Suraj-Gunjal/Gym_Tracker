@@ -23,6 +23,15 @@ class AppColors {
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color cardLight = Color(0xFFF1F5F9);
 
+  // Convenience aliases (defaults to dark theme)
+  static const Color surface = surfaceDark;
+  static const Color card = cardDark;
+  static const Color background = backgroundDark;
+
+  // Border colors
+  static const Color borderDark = Color(0xFF334155);
+  static const Color borderLight = Color(0xFFE2E8F0);
+
   // Text colors
   static const Color textPrimaryDark = Color(0xFFF8FAFC);
   static const Color textSecondaryDark = Color(0xFF94A3B8);

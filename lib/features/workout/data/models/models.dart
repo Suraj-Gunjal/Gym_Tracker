@@ -1,4 +1,5 @@
 /// Barrel file for workout data models
+library;
 export 'exercise_set_table.dart';
 export 'workout_exercise_table.dart';
 export 'workout_mapper.dart';

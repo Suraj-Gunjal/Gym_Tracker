@@ -410,7 +410,7 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             const SizedBox(height: 16),
 
             DropdownButtonFormField<MuscleGroup>(
-              value: _selectedMuscleGroup,
+              initialValue: _selectedMuscleGroup,
               decoration: const InputDecoration(labelText: 'Muscle Group'),
               items: MuscleGroup.values.map((group) {
                 return DropdownMenuItem(
