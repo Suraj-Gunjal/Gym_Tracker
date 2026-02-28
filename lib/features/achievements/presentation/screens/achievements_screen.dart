@@ -15,59 +15,144 @@ class AchievementsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userStats = ref.watch(userStatsNotifierProvider);
+    final userStatsAsync = ref.watch(userStatsNotifierProvider);
     final unlockedAchievements = ref.watch(unlockedAchievementsProvider);
     final inProgressAchievements = ref.watch(inProgressAchievementsProvider);
     final achievementsByCategory = ref.watch(achievementsByCategoryProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // App Bar with level display
-          SliverAppBar(
-            expandedHeight: 200,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppColors.backgroundDark,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _HeaderBackground(userStats: userStats),
-            ),
-          ),
-
-          // Stats overview
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: StatsOverviewCard(stats: userStats),
-            ),
-          ),
-
-          // Level progress
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: LevelProgressCard(stats: userStats),
-            ),
-          ),
-
-          // Streak card
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _StreakCard(
-                currentStreak: userStats.currentStreak,
-                longestStreak: userStats.longestStreak,
+    return userStatsAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+      data: (userStats) => Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            // App Bar with level display
+            SliverAppBar(
+              expandedHeight: 200,
+              floating: false,
+              pinned: true,
+              backgroundColor: AppColors.backgroundDark,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _HeaderBackground(userStats: userStats),
               ),
             ),
-          ),
 
-          // In Progress section
-          if (inProgressAchievements.isNotEmpty) ...[
+            // Stats overview
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.all(16),
+                child: StatsOverviewCard(stats: userStats),
+              ),
+            ),
+
+            // Level progress
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: LevelProgressCard(stats: userStats),
+              ),
+            ),
+
+            // Streak card
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _StreakCard(
+                  currentStreak: userStats.currentStreak,
+                  longestStreak: userStats.longestStreak,
+                ),
+              ),
+            ),
+
+            // In Progress section
+            if (inProgressAchievements.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Text(
+                    'Almost There! 🎯',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimaryDark,
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 160,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: inProgressAchievements.take(5).length,
+                    itemBuilder: (context, index) {
+                      final ua = inProgressAchievements[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: SizedBox(
+                          width: 140,
+                          child: AchievementCard(
+                            userAchievement: ua,
+                            compact: true,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+
+            // Recent unlocks
+            if (unlockedAchievements.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recently Unlocked 🏆',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimaryDark,
+                        ),
+                      ),
+                      Text(
+                        '${unlockedAchievements.length} total',
+                        style: TextStyle(color: AppColors.textSecondaryDark),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.9,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final ua = unlockedAchievements[index];
+                    return AchievementCard(
+                      userAchievement: ua,
+                      onTap: () => _showAchievementDetail(context, ua),
+                    );
+                  }, childCount: unlockedAchievements.take(4).length),
+                ),
+              ),
+            ],
+
+            // All achievements by category
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                 child: Text(
-                  'Almost There! 🎯',
+                  'All Achievements',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimaryDark,
@@ -75,98 +160,18 @@ class AchievementsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+
+            // Category tabs
             SliverToBoxAdapter(
-              child: SizedBox(
-                height: 160,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: inProgressAchievements.take(5).length,
-                  itemBuilder: (context, index) {
-                    final ua = inProgressAchievements[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: SizedBox(
-                        width: 140,
-                        child: AchievementCard(
-                          userAchievement: ua,
-                          compact: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              child: _CategoryTabs(
+                achievementsByCategory: achievementsByCategory,
               ),
             ),
+
+            // Bottom padding
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
-
-          // Recent unlocks
-          if (unlockedAchievements.isNotEmpty) ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Recently Unlocked 🏆',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimaryDark,
-                      ),
-                    ),
-                    Text(
-                      '${unlockedAchievements.length} total',
-                      style: TextStyle(color: AppColors.textSecondaryDark),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.9,
-                ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final ua = unlockedAchievements[index];
-                  return AchievementCard(
-                    userAchievement: ua,
-                    onTap: () => _showAchievementDetail(context, ua),
-                  );
-                }, childCount: unlockedAchievements.take(4).length),
-              ),
-            ),
-          ],
-
-          // All achievements by category
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text(
-                'All Achievements',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimaryDark,
-                ),
-              ),
-            ),
-          ),
-
-          // Category tabs
-          SliverToBoxAdapter(
-            child: _CategoryTabs(
-              achievementsByCategory: achievementsByCategory,
-            ),
-          ),
-
-          // Bottom padding
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+        ),
       ),
     );
   }

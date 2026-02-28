@@ -1,5 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../data/services/speech_recognition_service.dart';
 import '../../domain/entities/voice.dart';
 
 part 'voice_provider.g.dart';
@@ -7,22 +9,71 @@ part 'voice_provider.g.dart';
 /// Provider for voice recognition state.
 @riverpod
 class VoiceRecognitionNotifier extends _$VoiceRecognitionNotifier {
+  SpeechRecognitionService? _speechService;
+
   @override
   VoiceRecognitionState build() {
+    _speechService = ref.watch(speechRecognitionServiceProvider);
     return const VoiceRecognitionState();
   }
 
-  void startListening() {
+  /// Initialize speech recognition.
+  Future<bool> initializeSpeech() async {
+    if (_speechService == null) return false;
+
+    final success = await _speechService!.initialize();
+    if (!success) {
+      state = state.copyWith(
+        error: 'Speech recognition not available on this device',
+      );
+    }
+    return success;
+  }
+
+  /// Start listening for voice commands.
+  Future<void> startListening() async {
+    if (_speechService == null) return;
+
+    // Initialize if needed
+    if (!_speechService!.isInitialized) {
+      final success = await initializeSpeech();
+      if (!success) return;
+    }
+
     state = state.copyWith(
       isListening: true,
       recognizedText: null,
       matchedCommand: null,
       error: null,
     );
-    // In real app, start speech recognition here
+
+    try {
+      await _speechService!.startListening(
+        onResult: (result) {
+          state = state.copyWith(
+            recognizedText: result.recognizedWords,
+            isProcessing: !result.finalResult,
+          );
+
+          if (result.finalResult && result.recognizedWords.isNotEmpty) {
+            processText(result.recognizedWords);
+          }
+        },
+        partialResults: true,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Failed to start listening: ${e.toString()}',
+        isListening: false,
+      );
+    }
   }
 
-  void stopListening() {
+  /// Stop listening for voice commands.
+  Future<void> stopListening() async {
+    if (_speechService != null) {
+      await _speechService!.stopListening();
+    }
     state = state.copyWith(isListening: false);
   }
 

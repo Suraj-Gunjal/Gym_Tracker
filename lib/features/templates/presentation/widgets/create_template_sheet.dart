@@ -3,11 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../domain/entities/workout_template.dart';
 import '../providers/template_provider.dart';
 
-/// Bottom sheet for creating a new workout template.
+/// Bottom sheet for creating or editing a workout template.
 class CreateTemplateSheet extends ConsumerStatefulWidget {
-  const CreateTemplateSheet({super.key});
+  /// Optional template to edit. If null, creates a new template.
+  final WorkoutTemplate? templateToEdit;
+  
+  const CreateTemplateSheet({super.key, this.templateToEdit});
 
   @override
   ConsumerState<CreateTemplateSheet> createState() =>
@@ -19,6 +23,20 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
   final _descriptionController = TextEditingController();
   Color _selectedColor = const Color(0xFF6366F1);
   IconData _selectedIcon = Icons.fitness_center;
+  
+  bool get _isEditing => widget.templateToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill fields if editing
+    if (widget.templateToEdit != null) {
+      _nameController.text = widget.templateToEdit!.name;
+      _descriptionController.text = widget.templateToEdit!.description ?? '';
+      _selectedColor = widget.templateToEdit!.color;
+      _selectedIcon = widget.templateToEdit!.icon;
+    }
+  }
 
   @override
   void dispose() {
@@ -59,7 +77,7 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
 
             // Title
             Text(
-              'Create Template',
+              _isEditing ? 'Edit Template' : 'Create Template',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimaryDark,
@@ -222,21 +240,38 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
             ),
             const SizedBox(height: 32),
 
-            // Create button
+            // Create/Save button
             ElevatedButton(
               onPressed: _nameController.text.isNotEmpty
                   ? () {
                       HapticFeedback.mediumImpact();
-                      ref
-                          .read(templatesNotifierProvider.notifier)
-                          .createNewTemplate(
-                            name: _nameController.text,
-                            description: _descriptionController.text.isEmpty
-                                ? null
-                                : _descriptionController.text,
-                            color: _selectedColor,
-                            icon: _selectedIcon,
-                          );
+                      if (_isEditing) {
+                        // Update existing template
+                        final updated = widget.templateToEdit!.copyWith(
+                          name: _nameController.text,
+                          description: _descriptionController.text.isEmpty
+                              ? null
+                              : _descriptionController.text,
+                          color: _selectedColor,
+                          icon: _selectedIcon,
+                          updatedAt: DateTime.now(),
+                        );
+                        ref
+                            .read(templatesNotifierProvider.notifier)
+                            .updateTemplate(updated);
+                      } else {
+                        // Create new template
+                        ref
+                            .read(templatesNotifierProvider.notifier)
+                            .createNewTemplate(
+                              name: _nameController.text,
+                              description: _descriptionController.text.isEmpty
+                                  ? null
+                                  : _descriptionController.text,
+                              color: _selectedColor,
+                              icon: _selectedIcon,
+                            );
+                      }
                       Navigator.pop(context);
                     }
                   : null,
@@ -249,9 +284,9 @@ class _CreateTemplateSheetState extends ConsumerState<CreateTemplateSheet> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Create Template',
-                style: TextStyle(
+              child: Text(
+                _isEditing ? 'Save Changes' : 'Create Template',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

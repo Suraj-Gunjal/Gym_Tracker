@@ -590,17 +590,38 @@ class _ImportSheet extends ConsumerWidget {
                               color: Colors.grey[500],
                             ),
                             const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                // TODO: Implement file picker
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('File picker coming soon!'),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardDark,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.construction,
+                                    size: 32,
+                                    color: AppColors.warning,
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.folder_open),
-                              label: const Text('Select File'),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Import Coming Soon',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Data import will be available in a future update.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

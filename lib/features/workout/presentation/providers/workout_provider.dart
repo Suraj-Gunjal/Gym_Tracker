@@ -113,6 +113,26 @@ class ActiveWorkoutNotifier extends StateNotifier<ActiveWorkoutState> {
     }
   }
 
+  /// Start a workout from a template, adding all template exercises
+  Future<void> startWorkoutFromTemplate({
+    required String templateName,
+    required List<String> exerciseIds,
+  }) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      // Create the workout
+      final workout = await _workoutRepository.startWorkout(name: templateName);
+      state = ActiveWorkoutState(workout: workout);
+
+      // Add all exercises from the template
+      for (final exerciseId in exerciseIds) {
+        await addExercise(exerciseId);
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
   Future<void> completeWorkout() async {
     if (state.workout == null) return;
 

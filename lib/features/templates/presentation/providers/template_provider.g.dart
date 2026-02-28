@@ -6,7 +6,29 @@ part of 'template_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$filteredTemplatesHash() => r'02695caad3b06838e00875ce42bdb42a5dd81cfe';
+String _$workoutTemplateRepositoryHash() =>
+    r'6388a16a114f9848e5fd09d1a92d1a095fa05454';
+
+/// Provider for workout template repository
+///
+/// Copied from [workoutTemplateRepository].
+@ProviderFor(workoutTemplateRepository)
+final workoutTemplateRepositoryProvider =
+    AutoDisposeProvider<WorkoutTemplateRepository>.internal(
+      workoutTemplateRepository,
+      name: r'workoutTemplateRepositoryProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$workoutTemplateRepositoryHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WorkoutTemplateRepositoryRef =
+    AutoDisposeProviderRef<WorkoutTemplateRepository>;
+String _$filteredTemplatesHash() => r'fd1d191a207ff6be08023d98780c18867f242921';
 
 /// Filtered templates based on current filter
 ///
@@ -26,14 +48,14 @@ final filteredTemplatesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FilteredTemplatesRef = AutoDisposeProviderRef<List<WorkoutTemplate>>;
-String _$templatesNotifierHash() => r'8a57d95cf900a732020413395f132ca02e38242b';
+String _$templatesNotifierHash() => r'7145e21f91cd9f898fcec869a5f7c149829572ea';
 
 /// Provider for workout templates
 ///
 /// Copied from [TemplatesNotifier].
 @ProviderFor(TemplatesNotifier)
 final templatesNotifierProvider =
-    AutoDisposeNotifierProvider<
+    AutoDisposeAsyncNotifierProvider<
       TemplatesNotifier,
       List<WorkoutTemplate>
     >.internal(
@@ -46,7 +68,7 @@ final templatesNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$TemplatesNotifier = AutoDisposeNotifier<List<WorkoutTemplate>>;
+typedef _$TemplatesNotifier = AutoDisposeAsyncNotifier<List<WorkoutTemplate>>;
 String _$selectedTemplateHash() => r'804c5022770b2bf41f340cc3f97d1f8e3bda4b70';
 
 /// Provider for currently selected template

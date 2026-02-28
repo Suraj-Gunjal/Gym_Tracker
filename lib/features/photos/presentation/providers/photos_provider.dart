@@ -8,6 +8,8 @@ part 'photos_provider.g.dart';
 /// Provider for progress photos state.
 @riverpod
 class PhotoGalleryNotifier extends _$PhotoGalleryNotifier {
+  final _uuid = const Uuid();
+
   @override
   PhotoGalleryState build() {
     _loadPhotos();
@@ -20,7 +22,24 @@ class PhotoGalleryNotifier extends _$PhotoGalleryNotifier {
     state = PhotoGalleryState(photos: _generateMockPhotos(), isLoading: false);
   }
 
-  void addPhoto(ProgressPhoto photo) {
+  void addPhoto({
+    required String imagePath,
+    required PhotoPose pose,
+    double? weight,
+    String? note,
+    double? bodyFat,
+    bool isPrivate = true,
+  }) {
+    final photo = ProgressPhoto(
+      id: _uuid.v4(),
+      imagePath: imagePath,
+      pose: pose,
+      takenAt: DateTime.now(),
+      weight: weight,
+      bodyFat: bodyFat,
+      note: note,
+      isPrivate: isPrivate,
+    );
     state = state.copyWith(photos: [photo, ...state.photos]);
   }
 

@@ -170,9 +170,7 @@ class ProfileScreen extends ConsumerWidget {
                   leading: const Icon(Icons.settings),
                   title: const Text('Settings'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Navigate to settings
-                  },
+                  onTap: () => context.push('/settings-screen'),
                 ),
                 const Divider(height: 1),
                 ListTile(

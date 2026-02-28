@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../workout/presentation/providers/workout_provider.dart';
 import '../../domain/entities/workout_template.dart';
 import '../providers/template_provider.dart';
 import '../widgets/template_card.dart';
@@ -247,13 +249,13 @@ class _EmptyState extends StatelessWidget {
 }
 
 /// Template detail bottom sheet
-class _TemplateDetailSheet extends StatelessWidget {
+class _TemplateDetailSheet extends ConsumerWidget {
   final WorkoutTemplate template;
 
   const _TemplateDetailSheet({required this.template});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -341,9 +343,25 @@ class _TemplateDetailSheet extends StatelessWidget {
 
           // Start workout button
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Start workout from template
+              
+              // Get exercise IDs from template
+              final exerciseIds = template.exercises
+                  .where((e) => e.exercise != null)
+                  .map((e) => e.exercise!.id)
+                  .toList();
+              
+              // Start workout from template
+              await ref.read(activeWorkoutProvider.notifier).startWorkoutFromTemplate(
+                templateName: template.name,
+                exerciseIds: exerciseIds,
+              );
+              
+              // Navigate to active workout
+              if (context.mounted) {
+                context.goToActiveWorkout();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: template.color,
@@ -451,7 +469,15 @@ class _TemplateOptionsSheet extends ConsumerWidget {
             label: 'Edit Template',
             onTap: () {
               Navigator.pop(context);
-              // TODO: Edit template
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surfaceDark,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (context) => CreateTemplateSheet(templateToEdit: template),
+              );
             },
           ),
           _OptionTile(
@@ -459,15 +485,31 @@ class _TemplateOptionsSheet extends ConsumerWidget {
             label: 'Duplicate Template',
             onTap: () {
               Navigator.pop(context);
-              // TODO: Duplicate template
-            },
-          ),
-          _OptionTile(
-            icon: Icons.share_outlined,
-            label: 'Share Template',
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Share template
+              // Create a copy of the template with new ID and "(Copy)" suffix
+              final duplicate = template.copyWith(
+                name: '${template.name} (Copy)',
+                isPredefined: false,
+                usageCount: 0,
+                lastUsedAt: null,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+              ref.read(templatesNotifierProvider.notifier).addTemplate(
+                WorkoutTemplate(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  name: duplicate.name,
+                  description: duplicate.description,
+                  color: duplicate.color,
+                  icon: duplicate.icon,
+                  estimatedMinutes: duplicate.estimatedMinutes,
+                  exercises: duplicate.exercises,
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                ),
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Template duplicated')),
+              );
             },
           ),
           if (!template.isPredefined)

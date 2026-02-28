@@ -6,7 +6,29 @@ part of 'body_measurement_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$latestMeasurementHash() => r'3e472e8a91bffdc0610fdbe3b8e4fddcbc904b20';
+String _$bodyMeasurementRepositoryHash() =>
+    r'0a37dfe9186b54bafc21fbd45dab75991d124754';
+
+/// Provider for body measurement repository
+///
+/// Copied from [bodyMeasurementRepository].
+@ProviderFor(bodyMeasurementRepository)
+final bodyMeasurementRepositoryProvider =
+    AutoDisposeProvider<BodyMeasurementRepository>.internal(
+      bodyMeasurementRepository,
+      name: r'bodyMeasurementRepositoryProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$bodyMeasurementRepositoryHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef BodyMeasurementRepositoryRef =
+    AutoDisposeProviderRef<BodyMeasurementRepository>;
+String _$latestMeasurementHash() => r'0515e4894f8aeaf25113f4c4db402966d7ea5eb7';
 
 /// Latest measurement
 ///
@@ -27,7 +49,7 @@ final latestMeasurementProvider =
 // ignore: unused_element
 typedef LatestMeasurementRef = AutoDisposeProviderRef<BodyMeasurement?>;
 String _$measurementProgressHash() =>
-    r'c6e22f99d399e9ca3a74845b9cce5541534e51c5';
+    r'10a3f2593a13a5f24831421c5a580cbf80546375';
 
 /// Measurement progress comparison (latest vs first)
 ///
@@ -48,7 +70,7 @@ final measurementProgressProvider =
 // ignore: unused_element
 typedef MeasurementProgressRef = AutoDisposeProviderRef<MeasurementProgress?>;
 String _$measurementChartDataHash() =>
-    r'8c97d10a374ce9d5e31c7e290e015ec615fa6d0a';
+    r'aec59f9eb1dfb00ad8d9b305362c9ce17610c12a';
 
 /// Chart data points for selected measurement type
 ///
@@ -70,14 +92,14 @@ final measurementChartDataProvider =
 typedef MeasurementChartDataRef =
     AutoDisposeProviderRef<List<MeasurementChartPoint>>;
 String _$bodyMeasurementsNotifierHash() =>
-    r'9ea0589204f5bc2161b745feba9db586540afbc0';
+    r'b7ea6d5722dea123a700b4b51b507c084869a864';
 
 /// Provider for body measurements
 ///
 /// Copied from [BodyMeasurementsNotifier].
 @ProviderFor(BodyMeasurementsNotifier)
 final bodyMeasurementsNotifierProvider =
-    AutoDisposeNotifierProvider<
+    AutoDisposeAsyncNotifierProvider<
       BodyMeasurementsNotifier,
       List<BodyMeasurement>
     >.internal(
@@ -90,7 +112,8 @@ final bodyMeasurementsNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$BodyMeasurementsNotifier = AutoDisposeNotifier<List<BodyMeasurement>>;
+typedef _$BodyMeasurementsNotifier =
+    AutoDisposeAsyncNotifier<List<BodyMeasurement>>;
 String _$selectedMeasurementTypeHash() =>
     r'01b8a4517b29e1542f7e5cdb831ebe2080a6a296';
 

@@ -54,7 +54,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    // TODO: Implement actual backend auth when sync feature is added
+    // Note: Currently uses local-only auth. Backend auth available in future sync update.
     // For now, create/retrieve local user
 
     final existing = await getCurrentUser();
@@ -82,7 +82,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     String? displayName,
   }) async {
-    // TODO: Implement actual backend registration when sync feature is added
+    // Note: Currently uses local-only registration. Backend auth available in future sync update.
     // For now, create local user
 
     final now = DateTime.now();
@@ -117,7 +117,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<String?> refreshToken() async {
-    // TODO: Implement token refresh when sync feature is added
+    // Note: Token refresh not needed for local-only auth. Will be implemented with cloud sync.
     return _currentUser?.accessToken;
   }
 

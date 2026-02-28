@@ -63,7 +63,7 @@ final currentMonthStatsProvider = AutoDisposeProvider<CalendarMonth?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentMonthStatsRef = AutoDisposeProviderRef<CalendarMonth?>;
-String _$calendarNotifierHash() => r'a5c3311b0334878ae637c555233ffe7d3be2c0a2';
+String _$calendarNotifierHash() => r'8953ff3b39b4f7824d1c3c61ccd3e87858907d10';
 
 /// Provider for calendar state.
 ///

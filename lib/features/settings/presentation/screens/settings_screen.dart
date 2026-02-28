@@ -1,30 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../data_management/presentation/screens/data_management_screen.dart';
+import '../../../sync/presentation/screens/cloud_sync_screen.dart';
+import '../providers/settings_provider.dart';
+import 'edit_profile_screen.dart';
+import 'reminder_schedule_screen.dart';
 
 /// Settings screen with premium features.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  // User preferences
-  bool _useKg = true;
-  bool _enableNotifications = true;
-  bool _enableSounds = true;
-  bool _autoStartTimer = true;
-  bool _keepScreenOn = false;
-  int _defaultRestTime = 90;
-
-  // Premium status
-  bool _isPremium = false;
+  static const _privacyPolicyUrl = 'https://gymtracker.app/privacy';
+  static const _termsUrl = 'https://gymtracker.app/terms';
+  static const _playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.gymtracker.app';
+  static const _appStoreUrl =
+      'https://apps.apple.com/app/gym-tracker/id123456789';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsNotifierProvider);
+    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(title: const Text('Settings')),
@@ -32,21 +33,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // Premium banner
-          if (!_isPremium) _buildPremiumBanner(),
+          if (!settings.isPremium) _buildPremiumBanner(context, ref),
 
           // Profile section
           _buildSectionHeader('Profile'),
           _buildSettingsTile(
+            context: context,
             icon: Icons.person_outline,
             title: 'Edit Profile',
             subtitle: 'Name, photo, goals',
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            ),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.fitness_center,
             title: 'Body Measurements',
             subtitle: 'Track your body metrics',
-            onTap: () {},
+            onTap: () => context.push('/body'),
           ),
           const SizedBox(height: 16),
 
@@ -55,22 +61,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSwitchTile(
             icon: Icons.straighten,
             title: 'Use Metric (kg)',
-            subtitle: _useKg ? 'Using kilograms' : 'Using pounds',
-            value: _useKg,
-            onChanged: (value) => setState(() => _useKg = value),
+            subtitle: settings.useMetricUnits
+                ? 'Using kilograms'
+                : 'Using pounds',
+            value: settings.useMetricUnits,
+            onChanged: (value) => settingsNotifier.setUseMetricUnits(value),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.timer_outlined,
             title: 'Default Rest Time',
-            subtitle: '$_defaultRestTime seconds',
-            onTap: () => _showRestTimePicker(),
+            subtitle: _formatRestTime(settings.defaultRestTimeSeconds),
+            onTap: () => _showRestTimePicker(
+              context,
+              ref,
+              settings.defaultRestTimeSeconds,
+            ),
           ),
           _buildSwitchTile(
             icon: Icons.play_circle_outline,
             title: 'Auto-Start Timer',
             subtitle: 'Start rest timer after logging set',
-            value: _autoStartTimer,
-            onChanged: (value) => setState(() => _autoStartTimer = value),
+            value: settings.autoStartTimer,
+            onChanged: (value) => settingsNotifier.setAutoStartTimer(value),
           ),
           const SizedBox(height: 16),
 
@@ -80,15 +93,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.screen_lock_portrait,
             title: 'Keep Screen On',
             subtitle: 'Prevent screen from sleeping during workout',
-            value: _keepScreenOn,
-            onChanged: (value) => setState(() => _keepScreenOn = value),
+            value: settings.keepScreenOn,
+            onChanged: (value) => settingsNotifier.setKeepScreenOn(value),
           ),
           _buildSwitchTile(
             icon: Icons.volume_up,
             title: 'Sound Effects',
             subtitle: 'Play sounds for timer and PRs',
-            value: _enableSounds,
-            onChanged: (value) => setState(() => _enableSounds = value),
+            value: settings.enableSounds,
+            onChanged: (value) => settingsNotifier.setEnableSounds(value),
           ),
           const SizedBox(height: 16),
 
@@ -98,38 +111,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.notifications_outlined,
             title: 'Push Notifications',
             subtitle: 'Workout reminders and updates',
-            value: _enableNotifications,
-            onChanged: (value) => setState(() => _enableNotifications = value),
+            value: settings.enableNotifications,
+            onChanged: (value) =>
+                settingsNotifier.setEnableNotifications(value),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.schedule,
             title: 'Reminder Schedule',
-            subtitle: 'Set workout reminder times',
-            onTap: () {},
-            enabled: _enableNotifications,
+            subtitle: settings.reminderTimes.isEmpty
+                ? 'No reminders set'
+                : '${settings.reminderTimes.length} reminder(s) active',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReminderScheduleScreen()),
+            ),
+            enabled: settings.enableNotifications,
           ),
           const SizedBox(height: 16),
 
           // Data & Privacy
           _buildSectionHeader('Data & Privacy'),
           _buildSettingsTile(
+            context: context,
             icon: Icons.cloud_upload_outlined,
             title: 'Backup & Sync',
             subtitle: 'Cloud backup settings',
-            onTap: () {},
-            isPremium: true,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+            ),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.download_outlined,
             title: 'Export Data',
             subtitle: 'Download your workout data',
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DataManagementScreen()),
+            ),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.delete_outline,
             title: 'Clear Data',
             subtitle: 'Delete all workout data',
-            onTap: () => _showClearDataDialog(),
+            onTap: () => _showClearDataDialog(context),
             isDestructive: true,
           ),
           const SizedBox(height: 16),
@@ -137,34 +165,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // About
           _buildSectionHeader('About'),
           _buildSettingsTile(
+            context: context,
             icon: Icons.info_outline,
             title: 'About Gym Tracker',
             subtitle: 'Version 1.0.0',
             onTap: () => _showAboutDialog(context),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.star_outline,
             title: 'Rate App',
             subtitle: 'Love the app? Leave a review!',
-            onTap: () {},
+            onTap: () => _launchRateApp(),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.mail_outline,
             title: 'Contact Support',
             subtitle: 'Get help or send feedback',
             onTap: () => _launchEmail(),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.description_outlined,
             title: 'Privacy Policy',
             subtitle: 'View our privacy policy',
-            onTap: () {},
+            onTap: () => _launchUrl(_privacyPolicyUrl),
           ),
           _buildSettingsTile(
+            context: context,
             icon: Icons.article_outlined,
             title: 'Terms of Service',
             subtitle: 'View terms and conditions',
-            onTap: () {},
+            onTap: () => _launchUrl(_termsUrl),
           ),
           const SizedBox(height: 32),
 
@@ -182,7 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildPremiumBanner() {
+  Widget _buildPremiumBanner(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -196,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showPremiumSheet(),
+          onTap: () => _showPremiumSheet(context, ref),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -206,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -229,9 +262,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       Text(
                         'Unlock all features & cloud sync',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
+                        style: TextStyle(color: Colors.white.withOpacity(0.8)),
                       ),
                     ],
                   ),
@@ -264,12 +295,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSettingsTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     bool enabled = true,
-    bool isPremium = false,
     bool isDestructive = false,
   }) {
     return Container(
@@ -279,17 +310,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        onTap: enabled
-            ? isPremium && !_isPremium
-                  ? () => _showPremiumSheet()
-                  : onTap
-            : null,
+        onTap: enabled ? onTap : null,
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             color: isDestructive
-                ? Colors.red.withValues(alpha: 0.1)
+                ? Colors.red.withOpacity(0.1)
                 : AppColors.surfaceLight,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -303,34 +330,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             size: 20,
           ),
         ),
-        title: Row(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: enabled ? null : Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (isPremium && !_isPremium) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'PRO',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ],
+        title: Text(
+          title,
+          style: TextStyle(
+            color: enabled ? null : Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         subtitle: Text(
           subtitle,
@@ -380,7 +385,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showRestTimePicker() {
+  String _formatRestTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    if (minutes > 0 && secs > 0) {
+      return '${minutes}m ${secs}s';
+    } else if (minutes > 0) {
+      return '${minutes} minute${minutes > 1 ? 's' : ''}';
+    } else {
+      return '${secs} seconds';
+    }
+  }
+
+  void _showRestTimePicker(
+    BuildContext context,
+    WidgetRef ref,
+    int currentRestTime,
+  ) {
     final restTimes = [30, 45, 60, 90, 120, 150, 180, 240, 300];
 
     showModalBottomSheet(
@@ -389,7 +410,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
+      builder: (ctx) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -404,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               spacing: 12,
               runSpacing: 12,
               children: restTimes.map((time) {
-                final isSelected = time == _defaultRestTime;
+                final isSelected = time == currentRestTime;
                 final minutes = time ~/ 60;
                 final seconds = time % 60;
                 final label = minutes > 0
@@ -415,8 +436,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 return GestureDetector(
                   onTap: () {
-                    setState(() => _defaultRestTime = time);
-                    Navigator.pop(context);
+                    ref
+                        .read(settingsNotifierProvider.notifier)
+                        .setDefaultRestTime(time);
+                    Navigator.pop(ctx);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -447,10 +470,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showClearDataDialog() {
+  void _showClearDataDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('Clear All Data?'),
         content: const Text(
@@ -458,12 +481,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('All data cleared'),
@@ -479,15 +502,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showPremiumSheet() {
+  void _showPremiumSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _PremiumSheet(
+      builder: (ctx) => _PremiumSheet(
         onPurchase: () {
-          setState(() => _isPremium = true);
-          Navigator.pop(context);
+          ref.read(settingsNotifierProvider.notifier).setIsPremium(true);
+          Navigator.pop(ctx);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Welcome to Premium! 🎉'),
@@ -527,6 +550,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final uri = Uri.parse('mailto:support@gymtracker.app');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _launchRateApp() async {
+    // Try Play Store first, then App Store
+    final playStoreUri = Uri.parse(_playStoreUrl);
+    final appStoreUri = Uri.parse(_appStoreUrl);
+
+    if (await canLaunchUrl(playStoreUri)) {
+      await launchUrl(playStoreUri, mode: LaunchMode.externalApplication);
+    } else if (await canLaunchUrl(appStoreUri)) {
+      await launchUrl(appStoreUri, mode: LaunchMode.externalApplication);
     }
   }
 }

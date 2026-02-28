@@ -23,6 +23,10 @@ import '../../features/recovery/presentation/screens/muscle_heatmap_screen.dart'
 import '../../features/programs/presentation/screens/workout_programs_screen.dart';
 import '../../features/ai/presentation/screens/ai_recommendations_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/form_coach/presentation/screens/form_coach_screen.dart';
+import '../../features/smart_suggestions/presentation/screens/smart_suggestions_screen.dart';
+import '../../features/natural_log/presentation/screens/natural_log_screen.dart';
+import '../../features/weekly_insights/presentation/screens/weekly_insights_screen.dart';
 // New features
 import '../../features/measurements/presentation/screens/measurements_screen.dart';
 import '../../features/photos/presentation/screens/progress_photos_screen.dart';
@@ -65,6 +69,10 @@ class AppRoutes {
   // New feature routes
   static const String measurements = '/measurements';
   static const String progressPhotos = '/photos';
+  static const String formCoach = '/form-coach';
+  static const String smartSuggestions = '/smart-suggestions';
+  static const String naturalLog = '/natural-log';
+  static const String weeklyInsights = '/weekly-insights';
 }
 
 /// App router configuration using go_router.
@@ -215,6 +223,30 @@ final appRouter = GoRouter(
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: ProgressPhotosScreen()),
         ),
+
+        GoRoute(
+          path: AppRoutes.formCoach,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: FormCoachScreen()),
+        ),
+
+        GoRoute(
+          path: AppRoutes.smartSuggestions,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: SmartSuggestionsScreen()),
+        ),
+
+        GoRoute(
+          path: AppRoutes.naturalLog,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: NaturalLogScreen()),
+        ),
+
+        GoRoute(
+          path: AppRoutes.weeklyInsights,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: WeeklyInsightsScreen()),
+        ),
       ],
     ),
 
@@ -275,4 +307,8 @@ extension GoRouterExtension on BuildContext {
   // New features
   void goToMeasurements() => go(AppRoutes.measurements);
   void goToProgressPhotos() => go(AppRoutes.progressPhotos);
+  void goToFormCoach() => go(AppRoutes.formCoach);
+  void goToSmartSuggestions() => go(AppRoutes.smartSuggestions);
+  void goToNaturalLog() => go(AppRoutes.naturalLog);
+  void goToWeeklyInsights() => go(AppRoutes.weeklyInsights);
 }

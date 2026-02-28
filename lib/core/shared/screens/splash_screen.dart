@@ -84,31 +84,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // App icon
+                    // App logo
                     Container(
-                      width: 120,
-                      height: 120,
+                      width: 180,
+                      height: 180,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(40),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            blurRadius: 30,
-                            spreadRadius: 5,
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 40,
+                            spreadRadius: 10,
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.fitness_center,
-                        size: 60,
-                        color: Colors.white,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(40),
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
                     // App name
                     Text(
-                      'GymTracker',
+                      'Fitness Tracker',
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimaryDark,

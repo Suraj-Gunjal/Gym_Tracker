@@ -3,6 +3,7 @@
 ## Pre-Deployment Checklist
 
 ### 1. Code Preparation
+
 - [x] All compile errors fixed
 - [x] ProGuard rules configured for Android
 - [x] App permissions configured (Android & iOS)
@@ -12,12 +13,15 @@
 ### 2. App Configuration
 
 #### Update Version Number
+
 Edit `pubspec.yaml`:
+
 ```yaml
-version: 1.0.0+1  # Format: major.minor.patch+buildNumber
+version: 1.0.0+1 # Format: major.minor.patch+buildNumber
 ```
 
 For subsequent releases, increment:
+
 - **Patch** (1.0.1): Bug fixes
 - **Minor** (1.1.0): New features
 - **Major** (2.0.0): Breaking changes
@@ -28,6 +32,7 @@ For subsequent releases, increment:
 ## Android Deployment
 
 ### Step 1: Generate Signing Key
+
 ```powershell
 keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
@@ -35,8 +40,10 @@ keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -vali
 Move `upload-keystore.jks` to `android/` folder.
 
 ### Step 2: Configure Signing
+
 1. Copy `android/key.properties.example` to `android/key.properties`
 2. Fill in your keystore credentials:
+
 ```properties
 storePassword=your_actual_password
 keyPassword=your_actual_password
@@ -47,18 +54,23 @@ storeFile=../upload-keystore.jks
 > ⚠️ **Never commit `key.properties` or `upload-keystore.jks` to version control!**
 
 ### Step 3: Build Release APK
+
 ```powershell
 flutter build apk --release
 ```
+
 Output: `build/app/outputs/flutter-apk/app-release.apk`
 
 ### Step 4: Build Release App Bundle (for Play Store)
+
 ```powershell
 flutter build appbundle --release
 ```
+
 Output: `build/app/outputs/bundle/release/app-release.aab`
 
 ### Step 5: Upload to Google Play Console
+
 1. Go to [Google Play Console](https://play.google.com/console)
 2. Create a new app or select existing
 3. Navigate to **Release** > **Production**
@@ -70,6 +82,7 @@ Output: `build/app/outputs/bundle/release/app-release.aab`
 ## iOS Deployment
 
 ### Step 1: Configure Xcode Project
+
 1. Open `ios/Runner.xcworkspace` in Xcode
 2. Select the **Runner** target
 3. Set **Bundle Identifier**: `com.gymboyyy.tracker`
@@ -77,24 +90,30 @@ Output: `build/app/outputs/bundle/release/app-release.aab`
 5. Set **Deployment Target**: iOS 12.0+
 
 ### Step 2: Update iOS Bundle ID
+
 Edit `ios/Runner.xcodeproj/project.pbxproj`:
+
 - Find `PRODUCT_BUNDLE_IDENTIFIER` and set to `com.gymboyyy.tracker`
 
 Or via Xcode:
+
 1. Runner > Targets > Runner > Signing & Capabilities
 2. Update Bundle Identifier
 
 ### Step 3: Build Archive
+
 ```powershell
 flutter build ipa --release
 ```
 
 Or via Xcode:
+
 1. Select **Any iOS Device** as build target
 2. **Product** > **Archive**
 3. In Organizer, click **Distribute App**
 
 ### Step 4: Upload to App Store Connect
+
 1. Use **Transporter** app or Xcode Organizer
 2. Go to [App Store Connect](https://appstoreconnect.apple.com)
 3. Create new app version
@@ -105,10 +124,12 @@ Or via Xcode:
 ## Environment Configuration
 
 ### Supabase Setup (Production)
+
 1. Create a production Supabase project
 2. Update environment variables:
 
 Create `lib/core/config/env_config.dart`:
+
 ```dart
 class EnvConfig {
   static const String supabaseUrl = 'YOUR_PRODUCTION_SUPABASE_URL';
@@ -117,7 +138,9 @@ class EnvConfig {
 ```
 
 ### API Configuration
+
 If using a backend, update `lib/core/config/api_config.dart`:
+
 ```dart
 class ApiConfig {
   static const String baseUrl = 'https://api.yourdomain.com';
@@ -131,9 +154,10 @@ class ApiConfig {
 ### Required Assets
 
 #### Android (Google Play)
+
 - **App Icon**: 512x512 PNG
 - **Feature Graphic**: 1024x500 PNG
-- **Screenshots**: 
+- **Screenshots**:
   - Phone: 16:9 or 9:16 (min 320px, max 3840px)
   - Tablet 7": 16:9 or 9:16
   - Tablet 10": 16:9 or 9:16
@@ -141,6 +165,7 @@ class ApiConfig {
 - **Full Description**: Max 4000 characters
 
 #### iOS (App Store)
+
 - **App Icon**: 1024x1024 PNG (no alpha)
 - **Screenshots**:
   - iPhone 6.7" (1290x2796)
@@ -152,6 +177,7 @@ class ApiConfig {
 - **Keywords**: Max 100 characters
 
 ### Suggested App Store Description
+
 ```
 Gym Tracker - Your Ultimate Workout Companion
 
@@ -196,12 +222,14 @@ Download now and start your fitness journey!
 ## Post-Deployment
 
 ### Monitor & Maintain
+
 1. Set up crash reporting (Firebase Crashlytics)
 2. Monitor app reviews and ratings
 3. Track analytics (Firebase Analytics)
 4. Plan regular updates
 
 ### Version Increment Script
+
 ```powershell
 # Increment build number for next release
 $content = Get-Content pubspec.yaml -Raw
@@ -216,6 +244,7 @@ $content -replace 'version: \d+\.\d+\.\d+\+\d+', $newVersion | Set-Content pubsp
 ## Troubleshooting
 
 ### Android Build Issues
+
 ```powershell
 # Clean and rebuild
 flutter clean
@@ -225,6 +254,7 @@ flutter build appbundle --release
 ```
 
 ### iOS Build Issues
+
 ```powershell
 # Clean CocoaPods
 cd ios
@@ -236,6 +266,7 @@ flutter build ipa
 ```
 
 ### Signing Issues
+
 - Ensure keystore passwords are correct
 - Check keystore file path is relative to `android/app/`
 - For iOS, ensure you have a valid Apple Developer account and certificates

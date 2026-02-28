@@ -27,6 +27,7 @@ class AppColors {
   static const Color surface = surfaceDark;
   static const Color card = cardDark;
   static const Color background = backgroundDark;
+  static const Color textSecondary = textSecondaryDark;
 
   // Border colors
   static const Color borderDark = Color(0xFF334155);

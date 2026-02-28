@@ -4,8 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../router/app_router.dart';
 import '../../theme/app_colors.dart';
+import '../../services/supabase_service.dart';
+import '../../../features/workout/presentation/providers/workout_provider.dart';
+import '../../../features/calendar/presentation/providers/calendar_provider.dart';
+import '../../../features/pr/presentation/providers/pr_provider.dart';
+import '../../../features/sync/presentation/providers/supabase_sync_provider.dart';
+import '../../../features/sync/presentation/screens/cloud_sync_screen.dart';
+import '../../../features/settings/presentation/screens/settings_screen.dart';
 
-/// More screen with additional features and settings.
+/// More screen with real-time data and essential features.
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
@@ -14,7 +21,7 @@ class MoreScreen extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Hero Header
+          // Header
           SliverToBoxAdapter(
             child: Container(
               padding: EdgeInsets.only(
@@ -28,7 +35,7 @@ class MoreScreen extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withOpacity(0.15),
+                    AppColors.primary.withValues(alpha: 0.15),
                     AppColors.backgroundDark,
                   ],
                 ),
@@ -44,7 +51,7 @@ class MoreScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Unlock your full potential',
+                    'Your fitness hub',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.textSecondaryDark,
                     ),
@@ -54,15 +61,23 @@ class MoreScreen extends ConsumerWidget {
             ),
           ),
 
-          // Quick Stats Card
+          // Real Stats Card
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: _QuickStatsCard(),
+              child: _RealStatsCard(),
             ),
           ),
 
-          // Feature Grid
+          // Cloud Sync Status
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: _CloudSyncBanner(),
+            ),
+          ),
+
+          // Main Features Grid
           SliverPadding(
             padding: const EdgeInsets.all(20),
             sliver: SliverGrid(
@@ -79,21 +94,11 @@ class MoreScreen extends ConsumerWidget {
                   subtitle: 'Save & load routines',
                   gradient: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.7),
+                    AppColors.primary.withValues(alpha: 0.7),
                   ],
                   onTap: () {
                     HapticFeedback.lightImpact();
                     context.goToTemplates();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.straighten,
-                  title: 'Body Stats',
-                  subtitle: 'Track measurements',
-                  gradient: [const Color(0xFF10B981), const Color(0xFF059669)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToBody();
                   },
                 ),
                 _FeatureCard(
@@ -107,16 +112,6 @@ class MoreScreen extends ConsumerWidget {
                   },
                 ),
                 _FeatureCard(
-                  icon: Icons.timer,
-                  title: 'Rest Timer',
-                  subtitle: 'Custom intervals',
-                  gradient: [const Color(0xFFEC4899), const Color(0xFFDB2777)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _showRestTimerSettings(context);
-                  },
-                ),
-                _FeatureCard(
                   icon: Icons.calendar_month,
                   title: 'Calendar',
                   subtitle: 'Workout history',
@@ -127,45 +122,87 @@ class MoreScreen extends ConsumerWidget {
                   },
                 ),
                 _FeatureCard(
-                  icon: Icons.flag,
-                  title: 'Challenges',
-                  subtitle: 'Compete & earn XP',
-                  gradient: [const Color(0xFF06B6D4), const Color(0xFF0891B2)],
+                  icon: Icons.straighten,
+                  title: 'Body Stats',
+                  subtitle: 'Track measurements',
+                  gradient: [const Color(0xFF10B981), const Color(0xFF059669)],
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    context.goToChallenges();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.people,
-                  title: 'Social',
-                  subtitle: 'Connect & share',
-                  gradient: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToSocial();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.cloud_sync,
-                  title: 'Data',
-                  subtitle: 'Export & backup',
-                  gradient: [const Color(0xFF64748B), const Color(0xFF475569)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToDataManagement();
+                    context.goToBody();
                   },
                 ),
               ]),
             ),
           ),
 
-          // Premium Features Section
+          // AI Feature Section (NEW!)
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(
-              child: _SectionHeader(title: 'Premium Tools'),
+              child: _SectionHeader(title: 'AI Powered'),
             ),
+          ),
+
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.1,
+              ),
+              delegate: SliverChildListDelegate([
+                _FeatureCard(
+                  icon: Icons.camera_alt,
+                  title: 'AI Form Coach',
+                  subtitle: 'Real-time form analysis',
+                  gradient: [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.goToFormCoach();
+                  },
+                ),
+                _FeatureCard(
+                  icon: Icons.auto_awesome,
+                  title: 'Smart Suggestions',
+                  subtitle: 'AI workout recommendations',
+                  gradient: [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.goToSmartSuggestions();
+                  },
+                ),
+                _FeatureCard(
+                  icon: Icons.mic,
+                  title: 'Quick Log',
+                  subtitle: 'Natural language logging',
+                  gradient: [const Color(0xFF10B981), const Color(0xFF059669)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.goToNaturalLog();
+                  },
+                ),
+                _FeatureCard(
+                  icon: Icons.insights,
+                  title: 'Weekly Insights',
+                  subtitle: 'AI training analysis',
+                  gradient: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.goToWeeklyInsights();
+                  },
+                ),
+              ]),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // Tools Section
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverToBoxAdapter(child: _SectionHeader(title: 'Tools')),
           ),
 
           SliverPadding(
@@ -199,64 +236,23 @@ class MoreScreen extends ConsumerWidget {
                   },
                 ),
                 _FeatureCard(
+                  icon: Icons.timer,
+                  title: 'Rest Timer',
+                  subtitle: 'Custom intervals',
+                  gradient: [const Color(0xFFEC4899), const Color(0xFFDB2777)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _showRestTimerSettings(context);
+                  },
+                ),
+                _FeatureCard(
                   icon: Icons.accessibility_new,
-                  title: 'Muscle Heatmap',
+                  title: 'Muscle Map',
                   subtitle: 'Recovery tracking',
                   gradient: [const Color(0xFFF97316), const Color(0xFFEA580C)],
                   onTap: () {
                     HapticFeedback.lightImpact();
                     context.goToMuscleHeatmap();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.list_alt,
-                  title: 'Programs',
-                  subtitle: 'PPL, 5x5, PHUL...',
-                  gradient: [const Color(0xFFA855F7), const Color(0xFF9333EA)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToWorkoutPrograms();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.psychology,
-                  title: 'AI Coach',
-                  subtitle: 'Smart suggestions',
-                  gradient: [const Color(0xFF22D3EE), const Color(0xFF06B6D4)],
-                  isPremium: true,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToAiCoach();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.straighten_rounded,
-                  title: 'Measurements',
-                  subtitle: 'Track body stats',
-                  gradient: [const Color(0xFF84CC16), const Color(0xFF65A30D)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToMeasurements();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.photo_library,
-                  title: 'Progress Photos',
-                  subtitle: 'Visual journey',
-                  gradient: [const Color(0xFFE879F9), const Color(0xFFD946EF)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToProgressPhotos();
-                  },
-                ),
-                _FeatureCard(
-                  icon: Icons.settings,
-                  title: 'Settings',
-                  subtitle: 'App preferences',
-                  gradient: [const Color(0xFF78716C), const Color(0xFF57534E)],
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.goToSettings();
                   },
                 ),
               ]),
@@ -265,50 +261,39 @@ class MoreScreen extends ConsumerWidget {
 
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-          // Additional Options
+          // Settings Section
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _SectionHeader(title: 'Settings'),
+                _SectionHeader(title: 'Settings & Data'),
                 _OptionTile(
-                  icon: Icons.person_outline,
-                  title: 'Profile',
-                  onTap: () => context.goToProfile(),
+                  icon: Icons.cloud_sync,
+                  title: 'Cloud Sync',
+                  subtitle: SupabaseService.isAuthenticated
+                      ? 'Connected'
+                      : 'Not connected',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+                  ),
                 ),
                 _OptionTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
-                  onTap: () {},
+                  icon: Icons.settings,
+                  title: 'Settings',
+                  subtitle: 'App preferences',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
                 ),
-                _OptionTile(
-                  icon: Icons.palette_outlined,
-                  title: 'Appearance',
-                  onTap: () {},
-                ),
-                _OptionTile(
-                  icon: Icons.backup_outlined,
-                  title: 'Backup & Sync',
-                  onTap: () {},
-                ),
-                const SizedBox(height: 16),
-                _SectionHeader(title: 'About'),
                 _OptionTile(
                   icon: Icons.info_outline,
-                  title: 'About Gym Tracker',
-                  onTap: () {},
+                  title: 'About',
+                  subtitle: 'Version 1.0.0',
+                  onTap: () => _showAboutDialog(context),
                 ),
-                _OptionTile(
-                  icon: Icons.star_outline,
-                  title: 'Rate App',
-                  onTap: () {},
-                ),
-                _OptionTile(
-                  icon: Icons.feedback_outlined,
-                  title: 'Send Feedback',
-                  onTap: () {},
-                ),
-                const SizedBox(height: 100), // Bottom padding for FAB
+                const SizedBox(height: 100),
               ]),
             ),
           ),
@@ -327,11 +312,37 @@ class MoreScreen extends ConsumerWidget {
       builder: (context) => const _RestTimerSettingsSheet(),
     );
   }
+
+  void _showAboutDialog(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Gym Tracker',
+      applicationVersion: '1.0.0',
+      applicationIcon: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.fitness_center, color: Colors.white, size: 32),
+      ),
+      children: [
+        const Text(
+          'Your personal fitness companion for tracking workouts, progress, and achievements.',
+        ),
+      ],
+    );
+  }
 }
 
-class _QuickStatsCard extends StatelessWidget {
+class _RealStatsCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workoutsAsync = ref.watch(allWorkoutsProvider);
+    final streakData = ref.watch(currentStreakProvider);
+    final prsAsync = ref.watch(allPRsProvider);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -340,36 +351,153 @@ class _QuickStatsCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             AppColors.surfaceDark,
-            AppColors.surfaceDark.withOpacity(0.8),
+            AppColors.surfaceDark.withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _QuickStat(
-            value: '12',
-            label: 'Week Streak',
+            value: '${streakData.currentStreak}',
+            label: 'Day Streak',
             icon: Icons.local_fire_department,
             color: const Color(0xFFEF4444),
           ),
-          _QuickStat(
-            value: '24',
-            label: 'Badges',
-            icon: Icons.military_tech,
-            color: const Color(0xFFF59E0B),
+          workoutsAsync.when(
+            data: (workouts) => _QuickStat(
+              value: '${workouts.length}',
+              label: 'Workouts',
+              icon: Icons.fitness_center,
+              color: AppColors.primary,
+            ),
+            loading: () => _QuickStat(
+              value: '-',
+              label: 'Workouts',
+              icon: Icons.fitness_center,
+              color: AppColors.primary,
+            ),
+            error: (_, __) => _QuickStat(
+              value: '0',
+              label: 'Workouts',
+              icon: Icons.fitness_center,
+              color: AppColors.primary,
+            ),
           ),
-          _QuickStat(
-            value: 'Lvl 15',
-            label: 'Rank',
-            icon: Icons.trending_up,
-            color: AppColors.primary,
+          prsAsync.when(
+            data: (prs) => _QuickStat(
+              value: '${prs.length}',
+              label: 'PRs',
+              icon: Icons.emoji_events,
+              color: const Color(0xFFF59E0B),
+            ),
+            loading: () => _QuickStat(
+              value: '-',
+              label: 'PRs',
+              icon: Icons.emoji_events,
+              color: const Color(0xFFF59E0B),
+            ),
+            error: (_, __) => _QuickStat(
+              value: '0',
+              label: 'PRs',
+              icon: Icons.emoji_events,
+              color: const Color(0xFFF59E0B),
+            ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _CloudSyncBanner extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(supabaseSyncProvider);
+    final isAvailable = SupabaseService.isAvailable;
+    final isAuthenticated = SupabaseService.isAuthenticated;
+
+    if (!isAvailable) {
+      return const SizedBox.shrink();
+    }
+
+    Color color;
+    IconData icon;
+    String message;
+
+    if (!isAuthenticated) {
+      color = Colors.orange;
+      icon = Icons.cloud_off;
+      message = 'Sign in to backup your data';
+    } else if (syncState.isSyncing) {
+      color = AppColors.primary;
+      icon = Icons.sync;
+      message = 'Syncing...';
+    } else if (syncState.hasError) {
+      color = AppColors.error;
+      icon = Icons.error_outline;
+      message = 'Sync failed - tap to retry';
+    } else {
+      color = AppColors.success;
+      icon = Icons.cloud_done;
+      message = syncState.lastSyncAt != null
+          ? 'Last synced ${_formatTime(syncState.lastSyncAt!)}'
+          : 'Connected to cloud';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (!isAuthenticated) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+          );
+        } else if (syncState.hasError || !syncState.isSyncing) {
+          ref.read(supabaseSyncProvider.notifier).sync();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            syncState.isSyncing
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: color,
+                    ),
+                  )
+                : Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: color, fontWeight: FontWeight.w500),
+              ),
+            ),
+            if (!isAuthenticated)
+              Icon(Icons.chevron_right, color: color, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }
 
@@ -393,7 +521,7 @@ class _QuickStat extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 20),
@@ -422,7 +550,6 @@ class _FeatureCard extends StatefulWidget {
   final String subtitle;
   final List<Color> gradient;
   final VoidCallback onTap;
-  final bool isPremium;
 
   const _FeatureCard({
     required this.icon,
@@ -430,7 +557,6 @@ class _FeatureCard extends StatefulWidget {
     required this.subtitle,
     required this.gradient,
     required this.onTap,
-    this.isPremium = false,
   });
 
   @override
@@ -484,7 +610,7 @@ class _FeatureCardState extends State<_FeatureCard>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: widget.gradient.first.withOpacity(0.3),
+                color: widget.gradient.first.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -492,48 +618,15 @@ class _FeatureCardState extends State<_FeatureCard>
           ),
           child: Stack(
             children: [
-              // Decorative pattern
               Positioned(
                 right: -20,
                 bottom: -20,
                 child: Icon(
                   widget.icon,
                   size: 100,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
-              // Premium badge
-              if (widget.isPremium)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star, size: 10, color: Colors.black),
-                        SizedBox(width: 2),
-                        Text(
-                          'PRO',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              // Content
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -542,7 +635,7 @@ class _FeatureCardState extends State<_FeatureCard>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(widget.icon, color: Colors.white, size: 24),
@@ -559,7 +652,7 @@ class _FeatureCardState extends State<_FeatureCard>
                     Text(
                       widget.subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -597,11 +690,13 @@ class _SectionHeader extends StatelessWidget {
 class _OptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
 
   const _OptionTile({
     required this.icon,
     required this.title,
+    this.subtitle,
     required this.onTap,
   });
 
@@ -618,6 +713,12 @@ class _OptionTile extends StatelessWidget {
         child: Icon(icon, size: 20),
       ),
       title: Text(title),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: TextStyle(color: AppColors.textTertiaryDark, fontSize: 12),
+            )
+          : null,
       trailing: const Icon(
         Icons.chevron_right,
         color: AppColors.textTertiaryDark,
@@ -702,7 +803,7 @@ class _RestTimerSettingsSheetState extends State<_RestTimerSettingsSheet> {
                     border: Border.all(
                       color: isSelected
                           ? AppColors.primary
-                          : AppColors.textTertiaryDark.withOpacity(0.3),
+                          : AppColors.textTertiaryDark.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -378,6 +379,7 @@ class _ProgressPhotosScreenState extends ConsumerState<ProgressPhotosScreen>
     PhotoPose selectedPose = PhotoPose.front;
     final weightController = TextEditingController();
     final noteController = TextEditingController();
+    XFile? selectedImage;
 
     showModalBottomSheet(
       context: context,
@@ -423,9 +425,59 @@ class _ProgressPhotosScreenState extends ConsumerState<ProgressPhotosScreen>
 
               // Photo capture area
               InkWell(
-                onTap: () {
-                  // TODO: Implement camera/gallery picker
+                onTap: () async {
                   HapticFeedback.mediumImpact();
+                  final picker = ImagePicker();
+
+                  // Show source selection
+                  final source = await showModalBottomSheet<ImageSource>(
+                    context: context,
+                    backgroundColor: AppColors.surfaceDark,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(
+                              Icons.camera_alt,
+                              color: AppColors.primary,
+                            ),
+                            title: const Text('Take Photo'),
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.camera),
+                          ),
+                          ListTile(
+                            leading: const Icon(
+                              Icons.photo_library,
+                              color: AppColors.primary,
+                            ),
+                            title: const Text('Choose from Gallery'),
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.gallery),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+
+                  if (source != null) {
+                    final image = await picker.pickImage(
+                      source: source,
+                      maxWidth: 1920,
+                      maxHeight: 1920,
+                      imageQuality: 85,
+                    );
+                    if (image != null) {
+                      setSheetState(() {
+                        selectedImage = image;
+                      });
+                    }
+                  }
                 },
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
@@ -438,24 +490,53 @@ class _ProgressPhotosScreenState extends ConsumerState<ProgressPhotosScreen>
                       width: 2,
                       strokeAlign: BorderSide.strokeAlignCenter,
                     ),
+                    image: selectedImage != null
+                        ? DecorationImage(
+                            image: AssetImage(selectedImage!.path),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_a_photo,
-                          size: 48,
-                          color: AppColors.primary,
+                  child: selectedImage == null
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_a_photo,
+                                size: 48,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Tap to take or select photo',
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Stack(
+                          children: [
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Tap to take or select photo',
-                          style: TextStyle(color: AppColors.textSecondaryDark),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -556,28 +637,41 @@ class _ProgressPhotosScreenState extends ConsumerState<ProgressPhotosScreen>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Save photo to storage
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Photo feature requires camera permissions',
-                        ),
-                        backgroundColor: AppColors.info,
-                      ),
-                    );
-                  },
+                  onPressed: selectedImage != null
+                      ? () {
+                          // Add photo to provider
+                          ref
+                              .read(photoGalleryNotifierProvider.notifier)
+                              .addPhoto(
+                                imagePath: selectedImage!.path,
+                                pose: selectedPose,
+                                weight: double.tryParse(weightController.text),
+                                note: noteController.text.isEmpty
+                                    ? null
+                                    : noteController.text,
+                              );
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Photo saved! 📸'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.cardDark,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Save Photo',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: Text(
+                    selectedImage != null
+                        ? 'Save Photo'
+                        : 'Select a Photo First',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

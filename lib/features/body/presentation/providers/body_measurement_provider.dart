@@ -2,9 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/providers/database_provider.dart';
+import '../../data/repositories/body_measurement_repository_impl.dart';
 import '../../domain/entities/body_measurement.dart';
 
 part 'body_measurement_provider.g.dart';
+
+/// Provider for body measurement repository
+@riverpod
+BodyMeasurementRepository bodyMeasurementRepository(Ref ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return BodyMeasurementRepository(db);
+}
 
 /// Provider for body measurements
 @riverpod
@@ -12,67 +21,31 @@ class BodyMeasurementsNotifier extends _$BodyMeasurementsNotifier {
   final _uuid = const Uuid();
 
   @override
-  List<BodyMeasurement> build() {
-    // Return sample data for demonstration
-    return _getSampleMeasurements();
+  Future<List<BodyMeasurement>> build() async {
+    // Load real data from database
+    final repository = ref.watch(bodyMeasurementRepositoryProvider);
+    return repository.getAllMeasurements();
   }
 
-  List<BodyMeasurement> _getSampleMeasurements() {
-    final now = DateTime.now();
-    return [
-      BodyMeasurement(
-        id: _uuid.v4(),
-        measuredAt: now.subtract(const Duration(days: 30)),
-        weightKg: 75.5,
-        bodyFatPercent: 18.5,
-        chestCm: 100,
-        leftBicepCm: 35,
-        rightBicepCm: 35.5,
-        waistCm: 82,
-        updatedAt: now.subtract(const Duration(days: 30)),
-      ),
-      BodyMeasurement(
-        id: _uuid.v4(),
-        measuredAt: now.subtract(const Duration(days: 14)),
-        weightKg: 74.8,
-        bodyFatPercent: 17.8,
-        chestCm: 101,
-        leftBicepCm: 35.5,
-        rightBicepCm: 36,
-        waistCm: 81,
-        updatedAt: now.subtract(const Duration(days: 14)),
-      ),
-      BodyMeasurement(
-        id: _uuid.v4(),
-        measuredAt: now,
-        weightKg: 74.2,
-        bodyFatPercent: 17.0,
-        chestCm: 102,
-        leftBicepCm: 36,
-        rightBicepCm: 36.5,
-        waistCm: 80,
-        updatedAt: now,
-      ),
-    ];
+  Future<void> addMeasurement(BodyMeasurement measurement) async {
+    final repository = ref.read(bodyMeasurementRepositoryProvider);
+    await repository.saveMeasurement(measurement);
+    ref.invalidateSelf();
   }
 
-  void addMeasurement(BodyMeasurement measurement) {
-    state = [...state, measurement]
-      ..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
+  Future<void> updateMeasurement(BodyMeasurement measurement) async {
+    final repository = ref.read(bodyMeasurementRepositoryProvider);
+    await repository.saveMeasurement(measurement);
+    ref.invalidateSelf();
   }
 
-  void updateMeasurement(BodyMeasurement measurement) {
-    state = [
-      for (final m in state)
-        if (m.id == measurement.id) measurement else m,
-    ];
+  Future<void> deleteMeasurement(String id) async {
+    final repository = ref.read(bodyMeasurementRepositoryProvider);
+    await repository.deleteMeasurement(id);
+    ref.invalidateSelf();
   }
 
-  void deleteMeasurement(String id) {
-    state = state.where((m) => m.id != id).toList();
-  }
-
-  BodyMeasurement createMeasurement({
+  Future<BodyMeasurement> createMeasurement({
     double? weightKg,
     double? bodyFatPercent,
     double? muscleMassKg,
@@ -84,7 +57,7 @@ class BodyMeasurementsNotifier extends _$BodyMeasurementsNotifier {
     double? leftThighCm,
     double? rightThighCm,
     String? notes,
-  }) {
+  }) async {
     final measurement = BodyMeasurement(
       id: _uuid.v4(),
       measuredAt: DateTime.now(),
@@ -101,7 +74,7 @@ class BodyMeasurementsNotifier extends _$BodyMeasurementsNotifier {
       notes: notes,
       updatedAt: DateTime.now(),
     );
-    addMeasurement(measurement);
+    await addMeasurement(measurement);
     return measurement;
   }
 }
@@ -109,38 +82,47 @@ class BodyMeasurementsNotifier extends _$BodyMeasurementsNotifier {
 /// Latest measurement
 @riverpod
 BodyMeasurement? latestMeasurement(Ref ref) {
-  final measurements = ref.watch(bodyMeasurementsNotifierProvider);
-  if (measurements.isEmpty) return null;
-  return measurements.first;
+  final measurementsAsync = ref.watch(bodyMeasurementsNotifierProvider);
+  return measurementsAsync.when(
+    data: (measurements) => measurements.isEmpty ? null : measurements.first,
+    loading: () => null,
+    error: (_, __) => null,
+  );
 }
 
 /// Measurement progress comparison (latest vs first)
 @riverpod
 MeasurementProgress? measurementProgress(Ref ref) {
-  final measurements = ref.watch(bodyMeasurementsNotifierProvider);
-  if (measurements.length < 2) return null;
+  final measurementsAsync = ref.watch(bodyMeasurementsNotifierProvider);
+  return measurementsAsync.when(
+    data: (measurements) {
+      if (measurements.length < 2) return null;
 
-  final latest = measurements.first;
-  final oldest = measurements.last;
+      final latest = measurements.first;
+      final oldest = measurements.last;
 
-  return MeasurementProgress(
-    weightChange: latest.weightKg != null && oldest.weightKg != null
-        ? latest.weightKg! - oldest.weightKg!
-        : null,
-    bodyFatChange:
-        latest.bodyFatPercent != null && oldest.bodyFatPercent != null
-        ? latest.bodyFatPercent! - oldest.bodyFatPercent!
-        : null,
-    chestChange: latest.chestCm != null && oldest.chestCm != null
-        ? latest.chestCm! - oldest.chestCm!
-        : null,
-    bicepChange: latest.avgBicepCm != null && oldest.avgBicepCm != null
-        ? latest.avgBicepCm! - oldest.avgBicepCm!
-        : null,
-    waistChange: latest.waistCm != null && oldest.waistCm != null
-        ? latest.waistCm! - oldest.waistCm!
-        : null,
-    periodDays: latest.measuredAt.difference(oldest.measuredAt).inDays,
+      return MeasurementProgress(
+        weightChange: latest.weightKg != null && oldest.weightKg != null
+            ? latest.weightKg! - oldest.weightKg!
+            : null,
+        bodyFatChange:
+            latest.bodyFatPercent != null && oldest.bodyFatPercent != null
+            ? latest.bodyFatPercent! - oldest.bodyFatPercent!
+            : null,
+        chestChange: latest.chestCm != null && oldest.chestCm != null
+            ? latest.chestCm! - oldest.chestCm!
+            : null,
+        bicepChange: latest.avgBicepCm != null && oldest.avgBicepCm != null
+            ? latest.avgBicepCm! - oldest.avgBicepCm!
+            : null,
+        waistChange: latest.waistCm != null && oldest.waistCm != null
+            ? latest.waistCm! - oldest.waistCm!
+            : null,
+        periodDays: latest.measuredAt.difference(oldest.measuredAt).inDays,
+      );
+    },
+    loading: () => null,
+    error: (_, __) => null,
   );
 }
 
@@ -177,41 +159,47 @@ class SelectedMeasurementType extends _$SelectedMeasurementType {
 /// Chart data points for selected measurement type
 @riverpod
 List<MeasurementChartPoint> measurementChartData(Ref ref) {
-  final measurements = ref.watch(bodyMeasurementsNotifierProvider);
+  final measurementsAsync = ref.watch(bodyMeasurementsNotifierProvider);
   final selectedType = ref.watch(selectedMeasurementTypeProvider);
 
-  return measurements.reversed.map((m) {
-    double? value;
-    switch (selectedType) {
-      case MeasurementType.weight:
-        value = m.weightKg;
-        break;
-      case MeasurementType.bodyFat:
-        value = m.bodyFatPercent;
-        break;
-      case MeasurementType.muscleMass:
-        value = m.muscleMassKg;
-        break;
-      case MeasurementType.chest:
-        value = m.chestCm;
-        break;
-      case MeasurementType.biceps:
-        value = m.avgBicepCm;
-        break;
-      case MeasurementType.waist:
-        value = m.waistCm;
-        break;
-      case MeasurementType.hips:
-        value = m.hipsCm;
-        break;
-      case MeasurementType.thighs:
-        value = m.avgThighCm;
-        break;
-      default:
-        value = null;
-    }
-    return MeasurementChartPoint(date: m.measuredAt, value: value);
-  }).toList();
+  return measurementsAsync.when(
+    data: (measurements) {
+      return measurements.reversed.map((m) {
+        double? value;
+        switch (selectedType) {
+          case MeasurementType.weight:
+            value = m.weightKg;
+            break;
+          case MeasurementType.bodyFat:
+            value = m.bodyFatPercent;
+            break;
+          case MeasurementType.muscleMass:
+            value = m.muscleMassKg;
+            break;
+          case MeasurementType.chest:
+            value = m.chestCm;
+            break;
+          case MeasurementType.biceps:
+            value = m.avgBicepCm;
+            break;
+          case MeasurementType.waist:
+            value = m.waistCm;
+            break;
+          case MeasurementType.hips:
+            value = m.hipsCm;
+            break;
+          case MeasurementType.thighs:
+            value = m.avgThighCm;
+            break;
+          default:
+            value = null;
+        }
+        return MeasurementChartPoint(date: m.measuredAt, value: value);
+      }).toList();
+    },
+    loading: () => [],
+    error: (_, __) => [],
+  );
 }
 
 /// Chart point data

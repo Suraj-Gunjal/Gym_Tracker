@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../exercise/presentation/providers/exercise_provider.dart';
+import '../../domain/entities/workout.dart';
 import '../providers/workout_provider.dart';
 
 /// Screen showing workout history.
@@ -21,7 +24,7 @@ class WorkoutHistoryScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.calendar_month),
             onPressed: () {
-              // TODO: Show calendar view
+              context.go(AppRoutes.calendar);
             },
           ),
         ],
@@ -39,7 +42,7 @@ class WorkoutHistoryScreen extends ConsumerWidget {
               return _WorkoutCard(
                 workout: workout,
                 onTap: () {
-                  // TODO: Navigate to workout detail
+                  _showWorkoutDetail(context, workout);
                 },
               );
             },
@@ -47,6 +50,27 @@ class WorkoutHistoryScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
+      ),
+    );
+  }
+
+  void _showWorkoutDetail(BuildContext context, Workout workout) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => _WorkoutDetailSheet(
+          workout: workout,
+          scrollController: scrollController,
+        ),
       ),
     );
   }
@@ -236,6 +260,237 @@ class _StatChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
+    );
+  }
+}
+
+/// Bottom sheet showing workout details
+class _WorkoutDetailSheet extends ConsumerWidget {
+  final Workout workout;
+  final ScrollController scrollController;
+
+  const _WorkoutDetailSheet({
+    required this.workout,
+    required this.scrollController,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final exercisesAsync = ref.watch(allExercisesProvider);
+    final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+
+    final totalSets = workout.exercises.fold<int>(
+      0,
+      (sum, e) => sum + e.sets.length,
+    );
+    final totalVolume = workout.exercises.fold<double>(
+      0,
+      (sum, e) =>
+          sum + e.sets.fold<double>(0, (s, set) => s + (set.weight * set.reps)),
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textTertiaryDark,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(20),
+              children: [
+                // Header
+                Text(
+                  workout.name ?? 'Workout',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${dateFormat.format(workout.startedAt)} at ${timeFormat.format(workout.startedAt)}',
+                  style: TextStyle(color: AppColors.textSecondaryDark),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Stats
+                Row(
+                  children: [
+                    _DetailStatCard(
+                      icon: Icons.fitness_center,
+                      value: '${workout.exercises.length}',
+                      label: 'Exercises',
+                    ),
+                    const SizedBox(width: 12),
+                    _DetailStatCard(
+                      icon: Icons.repeat,
+                      value: '$totalSets',
+                      label: 'Sets',
+                    ),
+                    const SizedBox(width: 12),
+                    _DetailStatCard(
+                      icon: Icons.monitor_weight_outlined,
+                      value: '${(totalVolume / 1000).toStringAsFixed(1)}k',
+                      label: 'Volume (kg)',
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Exercises
+                Text(
+                  'Exercises',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                ...workout.exercises.map((exercise) {
+                  final exerciseName = exercisesAsync.maybeWhen(
+                    data: (exercises) => exercises
+                        .firstWhere(
+                          (e) => e.id == exercise.exerciseId,
+                          orElse: () => exercises.first,
+                        )
+                        .name,
+                    orElse: () => 'Exercise',
+                  );
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardDark,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exerciseName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...exercise.sets.asMap().entries.map((entry) {
+                          final set = entry.value;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${entry.key + 1}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '${set.weight} kg × ${set.reps} reps',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondaryDark,
+                                  ),
+                                ),
+                                if (set.completed) ...[
+                                  const Spacer(),
+                                  Icon(
+                                    Icons.check_circle,
+                                    size: 18,
+                                    color: AppColors.success,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailStatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+
+  const _DetailStatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondaryDark,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

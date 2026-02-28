@@ -48,7 +48,7 @@ final photoTimelineProvider =
 typedef PhotoTimelineRef =
     AutoDisposeProviderRef<Map<String, List<ProgressPhoto>>>;
 String _$photoGalleryNotifierHash() =>
-    r'492224f9e9e46554057813ce88381c2fd0a5183e';
+    r'9c4610dd2def28315d3625894743231037540cfa';
 
 /// Provider for progress photos state.
 ///

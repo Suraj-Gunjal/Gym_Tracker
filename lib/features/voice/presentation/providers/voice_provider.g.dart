@@ -48,7 +48,7 @@ final isVoiceEnabledProvider = AutoDisposeProvider<bool>.internal(
 // ignore: unused_element
 typedef IsVoiceEnabledRef = AutoDisposeProviderRef<bool>;
 String _$voiceRecognitionNotifierHash() =>
-    r'7968b1317711ab10f430062b9a7edd4827880b49';
+    r'1727ec23cd4299cd2eece0e7abda3be989ff4592';
 
 /// Provider for voice recognition state.
 ///

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/muscle_group.dart';
@@ -168,7 +170,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
   }
 
   void _showExerciseDetail(Exercise exercise) {
-    // TODO: Navigate to exercise detail
+    context.go(AppRoutes.exerciseDetail.replaceFirst(':id', exercise.id));
   }
 
   void _showCreateExerciseDialog(BuildContext context) {

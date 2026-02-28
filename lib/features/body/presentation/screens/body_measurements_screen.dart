@@ -2,8 +2,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/body_measurement.dart';
 import '../providers/body_measurement_provider.dart';
@@ -17,282 +19,289 @@ class BodyMeasurementsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final measurements = ref.watch(bodyMeasurementsNotifierProvider);
+    final measurementsAsync = ref.watch(bodyMeasurementsNotifierProvider);
     final latestMeasurement = ref.watch(latestMeasurementProvider);
     final progress = ref.watch(measurementProgressProvider);
     final selectedType = ref.watch(selectedMeasurementTypeProvider);
     final chartData = ref.watch(measurementChartDataProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: true,
-            pinned: true,
-            backgroundColor: AppColors.backgroundDark,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Body Stats',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.camera_alt_outlined),
-                onPressed: () {
-                  // TODO: Progress photo feature
-                },
-              ),
-            ],
-          ),
-
-          // Stats overview cards
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Main stats row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: BodyStatsCard(
-                          title: 'Weight',
-                          value: latestMeasurement?.weightKg != null
-                              ? '${latestMeasurement!.weightKg!.toStringAsFixed(1)} kg'
-                              : '--',
-                          change: progress?.weightChange,
-                          changeUnit: 'kg',
-                          icon: Icons.monitor_weight_outlined,
-                          color: AppColors.primary,
-                          isPositiveGood: false,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: BodyStatsCard(
-                          title: 'Body Fat',
-                          value: latestMeasurement?.bodyFatPercent != null
-                              ? '${latestMeasurement!.bodyFatPercent!.toStringAsFixed(1)}%'
-                              : '--',
-                          change: progress?.bodyFatChange,
-                          changeUnit: '%',
-                          icon: Icons.pie_chart_outline,
-                          color: AppColors.warning,
-                          isPositiveGood: false,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: BodyStatsCard(
-                          title: 'Chest',
-                          value: latestMeasurement?.chestCm != null
-                              ? '${latestMeasurement!.chestCm!.toStringAsFixed(1)} cm'
-                              : '--',
-                          change: progress?.chestChange,
-                          changeUnit: 'cm',
-                          icon: Icons.accessibility_new,
-                          color: AppColors.secondary,
-                          isPositiveGood: true,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: BodyStatsCard(
-                          title: 'Biceps',
-                          value: latestMeasurement?.avgBicepCm != null
-                              ? '${latestMeasurement!.avgBicepCm!.toStringAsFixed(1)} cm'
-                              : '--',
-                          change: progress?.bicepChange,
-                          changeUnit: 'cm',
-                          icon: Icons.fitness_center,
-                          color: AppColors.info,
-                          isPositiveGood: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Progress chart
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(20),
+    return measurementsAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+      data: (measurements) => Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            // App Bar
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: true,
+              pinned: true,
+              backgroundColor: AppColors.backgroundDark,
+              flexibleSpace: FlexibleSpaceBar(
+                title: const Text(
+                  'Body Stats',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  onPressed: () {
+                    context.go(AppRoutes.progressPhotos);
+                  },
+                ),
+              ],
+            ),
+
+            // Stats overview cards
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Chart header
+                    // Main stats row
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Progress Chart',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimaryDark,
-                              ),
-                        ),
-                        if (progress != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${progress.periodDays} days',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        Expanded(
+                          child: BodyStatsCard(
+                            title: 'Weight',
+                            value: latestMeasurement?.weightKg != null
+                                ? '${latestMeasurement!.weightKg!.toStringAsFixed(1)} kg'
+                                : '--',
+                            change: progress?.weightChange,
+                            changeUnit: 'kg',
+                            icon: Icons.monitor_weight_outlined,
+                            color: AppColors.primary,
+                            isPositiveGood: false,
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: BodyStatsCard(
+                            title: 'Body Fat',
+                            value: latestMeasurement?.bodyFatPercent != null
+                                ? '${latestMeasurement!.bodyFatPercent!.toStringAsFixed(1)}%'
+                                : '--',
+                            change: progress?.bodyFatChange,
+                            changeUnit: '%',
+                            icon: Icons.pie_chart_outline,
+                            color: AppColors.warning,
+                            isPositiveGood: false,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    // Measurement type selector
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children:
-                            [
-                              MeasurementType.weight,
-                              MeasurementType.bodyFat,
-                              MeasurementType.chest,
-                              MeasurementType.biceps,
-                              MeasurementType.waist,
-                            ].map((type) {
-                              final isSelected = selectedType == type;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  label: Text(type.displayName),
-                                  selected: isSelected,
-                                  onSelected: (_) {
-                                    HapticFeedback.selectionClick();
-                                    ref
-                                        .read(
-                                          selectedMeasurementTypeProvider
-                                              .notifier,
-                                        )
-                                        .select(type);
-                                  },
-                                  backgroundColor: AppColors.surfaceDark,
-                                  selectedColor: AppColors.primary.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  checkmarkColor: AppColors.primary,
-                                  labelStyle: TextStyle(
-                                    color: isSelected
-                                        ? AppColors.primary
-                                        : AppColors.textSecondaryDark,
-                                    fontSize: 12,
-                                  ),
-                                  side: BorderSide(
-                                    color: isSelected
-                                        ? AppColors.primary
-                                        : Colors.transparent,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Chart
-                    SizedBox(
-                      height: 200,
-                      child: _MeasurementChart(
-                        data: chartData,
-                        measurementType: selectedType,
-                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: BodyStatsCard(
+                            title: 'Chest',
+                            value: latestMeasurement?.chestCm != null
+                                ? '${latestMeasurement!.chestCm!.toStringAsFixed(1)} cm'
+                                : '--',
+                            change: progress?.chestChange,
+                            changeUnit: 'cm',
+                            icon: Icons.accessibility_new,
+                            color: AppColors.secondary,
+                            isPositiveGood: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: BodyStatsCard(
+                            title: 'Biceps',
+                            value: latestMeasurement?.avgBicepCm != null
+                                ? '${latestMeasurement!.avgBicepCm!.toStringAsFixed(1)} cm'
+                                : '--',
+                            change: progress?.bicepChange,
+                            changeUnit: 'cm',
+                            icon: Icons.fitness_center,
+                            color: AppColors.info,
+                            isPositiveGood: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-          ),
 
-          // History header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'History',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimaryDark,
-                    ),
+            // Progress chart
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      // TODO: Show all history
-                    },
-                    child: const Text('View All'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Chart header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress Chart',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimaryDark,
+                                ),
+                          ),
+                          if (progress != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${progress.periodDays} days',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Measurement type selector
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children:
+                              [
+                                MeasurementType.weight,
+                                MeasurementType.bodyFat,
+                                MeasurementType.chest,
+                                MeasurementType.biceps,
+                                MeasurementType.waist,
+                              ].map((type) {
+                                final isSelected = selectedType == type;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    label: Text(type.displayName),
+                                    selected: isSelected,
+                                    onSelected: (_) {
+                                      HapticFeedback.selectionClick();
+                                      ref
+                                          .read(
+                                            selectedMeasurementTypeProvider
+                                                .notifier,
+                                          )
+                                          .select(type);
+                                    },
+                                    backgroundColor: AppColors.surfaceDark,
+                                    selectedColor: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    checkmarkColor: AppColors.primary,
+                                    labelStyle: TextStyle(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : AppColors.textSecondaryDark,
+                                      fontSize: 12,
+                                    ),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Chart
+                      SizedBox(
+                        height: 200,
+                        child: _MeasurementChart(
+                          data: chartData,
+                          measurementType: selectedType,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
 
-          // Measurement history list
-          if (measurements.isEmpty)
-            SliverFillRemaining(
-              child: _EmptyState(onAdd: () => _showAddMeasurement(context)),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final measurement = measurements[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: MeasurementHistoryTile(
-                      measurement: measurement,
-                      onTap: () => _showMeasurementDetail(context, measurement),
+            // History header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'History',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimaryDark,
+                      ),
                     ),
-                  );
-                }, childCount: measurements.length.clamp(0, 5)),
+                    TextButton(
+                      onPressed: () {
+                        // View All button - shows full history in scrollable list
+                        HapticFeedback.selectionClick();
+                      },
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
               ),
             ),
 
-          // Bottom padding
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddMeasurement(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Log Measurement'),
-        backgroundColor: AppColors.primary,
+            // Measurement history list
+            if (measurements.isEmpty)
+              SliverFillRemaining(
+                child: _EmptyState(onAdd: () => _showAddMeasurement(context)),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final measurement = measurements[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: MeasurementHistoryTile(
+                        measurement: measurement,
+                        onTap: () =>
+                            _showMeasurementDetail(context, measurement),
+                      ),
+                    );
+                  }, childCount: measurements.length.clamp(0, 5)),
+                ),
+              ),
+
+            // Bottom padding
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showAddMeasurement(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Log Measurement'),
+          backgroundColor: AppColors.primary,
+        ),
       ),
     );
   }
@@ -313,7 +322,15 @@ class BodyMeasurementsScreen extends ConsumerWidget {
     BuildContext context,
     BodyMeasurement measurement,
   ) {
-    // TODO: Show measurement detail
+    // Tap on measurement row shows this detail
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _MeasurementDetailSheet(measurement: measurement),
+    );
   }
 }
 
@@ -519,6 +536,155 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Measurement detail bottom sheet
+class _MeasurementDetailSheet extends StatelessWidget {
+  final BodyMeasurement measurement;
+
+  const _MeasurementDetailSheet({required this.measurement});
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('MMMM d, yyyy');
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textTertiaryDark,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          Text(
+            'Measurement Details',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            dateFormat.format(measurement.measuredAt),
+            style: TextStyle(color: AppColors.textSecondaryDark),
+          ),
+          const SizedBox(height: 24),
+
+          // Stats grid
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              if (measurement.weightKg != null)
+                _DetailChip(
+                  icon: Icons.monitor_weight,
+                  label: 'Weight',
+                  value: '${measurement.weightKg!.toStringAsFixed(1)} kg',
+                ),
+              if (measurement.bodyFatPercent != null)
+                _DetailChip(
+                  icon: Icons.percent,
+                  label: 'Body Fat',
+                  value: '${measurement.bodyFatPercent!.toStringAsFixed(1)}%',
+                ),
+              if (measurement.chestCm != null)
+                _DetailChip(
+                  icon: Icons.straighten,
+                  label: 'Chest',
+                  value: '${measurement.chestCm!.toStringAsFixed(1)} cm',
+                ),
+              if (measurement.waistCm != null)
+                _DetailChip(
+                  icon: Icons.straighten,
+                  label: 'Waist',
+                  value: '${measurement.waistCm!.toStringAsFixed(1)} cm',
+                ),
+              if (measurement.leftBicepCm != null)
+                _DetailChip(
+                  icon: Icons.straighten,
+                  label: 'Left Arm',
+                  value: '${measurement.leftBicepCm!.toStringAsFixed(1)} cm',
+                ),
+              if (measurement.leftThighCm != null)
+                _DetailChip(
+                  icon: Icons.straighten,
+                  label: 'Left Thigh',
+                  value: '${measurement.leftThighCm!.toStringAsFixed(1)} cm',
+                ),
+            ],
+          ),
+
+          if (measurement.notes != null) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Note',
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(measurement.notes!),
+          ],
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DetailChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
       ),
     );
   }
